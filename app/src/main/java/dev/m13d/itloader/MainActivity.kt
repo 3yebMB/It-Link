@@ -14,7 +14,7 @@ import androidx.activity.viewModels
 import androidx.appcompat.app.AppCompatActivity
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.FragmentManager
-import androidx.lifecycle.ViewModelProvider
+import androidx.lifecycle.ViewModelProvider.*
 import by.kirich1409.viewbindingdelegate.viewBinding
 import dev.m13d.itloader.databinding.ActivityMainBinding
 import dev.m13d.itloader.navigator.MainNavigator
@@ -23,25 +23,27 @@ import dev.m13d.itloader.screen.gallery.GalleryFragment
 
 class MainActivity : AppCompatActivity(R.layout.activity_main) {
 
-    private val navigator by viewModels<MainNavigator> {
-        ViewModelProvider.AndroidViewModelFactory(
-            application
-        )
-    }
+    private val navigator by viewModels<MainNavigator> { AndroidViewModelFactory(application) }
 
     private var downloadedId = 0L
     private val binding by viewBinding(ActivityMainBinding::bind)
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-
+//        installSplashScreen()
 
         if (!isFileExists("images.txt")) {
             Log.d("TAG", "Downloading...")
             downloadImageList()
         } else {
             Log.d("TAG", "Not downloading...")
-            launchFragment()
+            if (savedInstanceState == null) {
+                navigator.launchFragment(
+                    this@MainActivity,
+                    GalleryFragment.Screen(FULL_FILE_NAME),
+                    addToBackStack = false
+                )
+            }
         }
 
         binding.topToolbar.setOnMenuItemClickListener { menuItem ->
@@ -60,20 +62,18 @@ class MainActivity : AppCompatActivity(R.layout.activity_main) {
                 val id = p1?.getLongExtra(DownloadManager.EXTRA_DOWNLOAD_ID, -1)
                 if (id == downloadedId) {
                     Log.d("TAG", "Image list download complete")
-                    launchFragment()
+                    if (savedInstanceState == null) {
+                        navigator.launchFragment(
+                            this@MainActivity,
+                            GalleryFragment.Screen(FULL_FILE_NAME),
+                            addToBackStack = false
+                        )
+                    }
                 }
             }
         }
+        supportFragmentManager.registerFragmentLifecycleCallbacks(fragmentCallbacks, false)
         registerReceiver(br, IntentFilter(DownloadManager.ACTION_DOWNLOAD_COMPLETE))
-    }
-
-    private fun launchFragment() {
-        if (supportFragmentManager.findFragmentByTag(GalleryFragment.GALLERY_FRAGMENT_TAG) == null) {
-            supportFragmentManager
-                .beginTransaction()
-                .replace(R.id.fragment_container, GalleryFragment.newInstance(FULL_FILE_NAME))
-                .commit()
-        }
     }
 
     override fun onDestroy() {
@@ -141,6 +141,9 @@ class MainActivity : AppCompatActivity(R.layout.activity_main) {
     }
 
     companion object {
+
+        @JvmStatic
+        private val KEY_RESULT = "RESULT"
 
         const val FILE_NAME = "images.txt"
         val FULL_FILE_NAME by lazy { (Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOCUMENTS + "/" + FILE_NAME)).path }

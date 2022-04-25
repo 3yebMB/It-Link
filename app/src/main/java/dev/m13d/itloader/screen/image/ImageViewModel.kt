@@ -19,14 +19,6 @@ class ImageViewModel(
         _initialMessageEvent.value = Event(screen.initialValue)
     }
 
-//    fun onSavePressed(message: String) {
-//        if (message.isBlank()) {
-////            navigator.toast(R.string.empty_message)
-//            return
-//        }
-//        navigator.goBack(message)
-//    }
-
     fun onBackPressed() {
         navigator.goBack()
     }
